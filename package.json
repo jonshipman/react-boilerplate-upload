@@ -8,8 +8,12 @@
   "license": "MIT",
   "private": false,
   "dependencies": {
-    "babel-preset-react": "^6.24.1",
     "react": "^16.13.1",
     "react-dropzone": "^11.0.3"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.11.4",
+    "@babel/preset-env": "^7.11.0",
+    "@babel/preset-react": "^7.10.4"
   }
 }
