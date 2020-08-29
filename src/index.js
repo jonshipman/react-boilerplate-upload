@@ -21,6 +21,7 @@ const Item = ({
   file,
   loadingComponent: Load,
   loadingErrorComponent: Error,
+  previewAltImages = {},
 }) => {
   const [className, setClassname] = useState("bg-moon-gray");
 
@@ -40,13 +41,22 @@ const Item = ({
 
   const timeLeft = calcTimeLeft(file);
 
+  let preview = file.preview;
+
+  // Allows the developer to specify alternative images, like a PDF or DOC thumbnail icon
+  Object.keys(previewAltImages).forEach((key) => {
+    if (key === file.type) {
+      preview = previewAltImages[key];
+    }
+  });
+
   return (
     <div
       className={`bg-animate relative z-1 flex flex-wrap flex-nowrap-l items-center ${className}`}
     >
       <div
         className="w3 h3 bg-center cover relative z-2 ma2 bg-gray"
-        style={{ backgroundImage: `url(${file.preview})` }}
+        style={{ backgroundImage: `url(${preview})` }}
       />
       <div className="black relative z-2">{file.name}</div>
       {file.loading && file.progress > 99 && (
@@ -128,6 +138,7 @@ const Upload = ({
   accept,
   loadingComponent = Loading,
   loadingErrorComponent = LoadingError,
+  previewAltImages,
   post = {},
   ...props
 }) => {
@@ -300,6 +311,7 @@ const Upload = ({
             file={f}
             loadingErrorComponent={loadingErrorComponent}
             loadingComponent={loadingComponent}
+            previewAltImages={previewAltImages}
           />
         ))}
     </div>
