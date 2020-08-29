@@ -2,7 +2,7 @@
   "name": "react-boilerplate-upload",
   "version": "0.0.1",
   "description": "Upload component for use with my boilerplate",
-  "main": "index.js",
+  "main": "./src/index.js",
   "repository": "https://github.com/jonshipman/react-boilerplate-upload",
   "author": "Jon Shipman <jon@jonshipman.com>",
   "license": "MIT",
