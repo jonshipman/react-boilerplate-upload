@@ -1,0 +1,14 @@
+{
+  "name": "react-boilerplate-upload",
+  "version": "0.0.1",
+  "description": "Upload component for use with my boilerplate",
+  "main": "index.js",
+  "repository": "https://github.com/jonshipman/react-boilerplate-upload",
+  "author": "Jon Shipman <jon@jonshipman.com>",
+  "license": "MIT",
+  "private": false,
+  "dependencies": {
+    "react": "^16.13.1",
+    "react-dropzone": "^11.0.3"
+  }
+}
