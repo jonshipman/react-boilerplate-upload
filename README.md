@@ -7,21 +7,32 @@
 ## Install
 
 ```bash
-npm install --save react-boilerplate-upload
+yarn add https://github.com/jonshipman/react-boilerplate-upload
 ```
 
 ## Usage
 
 ```jsx
-import React, { Component } from 'react'
+import React from 'react'
+import Upload from 'react-boilerplate-upload'
 
-import MyComponent from 'react-boilerplate-upload'
-import 'react-boilerplate-upload/dist/index.css'
-
-class Example extends Component {
-  render() {
-    return <MyComponent />
-  }
+const Example = () => {
+  return (
+    <Upload
+      onFailure={(file) => {
+        console.error(file)
+      }}
+      onComplete={(file) => {
+        console.log(file)
+      }}
+      label='Click Here to Upload a PDF Resume.'
+      accept='application/pdf'
+      previewAltImages={{
+        'application/pdf': '/images/application-pdf.png'
+      }}
+      BACKEND_URL={'http://localhost/'}
+    />
+  );
 }
 ```
 

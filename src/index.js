@@ -89,8 +89,15 @@ const Item = ({
   )
 }
 
-const HTTPRequest = ({ file, progress, post, modifyRequest, BACKEND_URL }) => {
-  const url = `${BACKEND_URL}/wp-admin/admin-ajax.php?action=media_upload`
+const HTTPRequest = ({
+  file,
+  progress,
+  post,
+  modifyRequest,
+  BACKEND_URL,
+  actionName = 'media_upload'
+}) => {
+  const url = `${BACKEND_URL}/wp-admin/admin-ajax.php?action=${actionName}`
 
   return new Promise((res, rej) => {
     const request = new XMLHttpRequest()
@@ -139,6 +146,7 @@ const Upload = ({
   loadingComponent = Loading,
   loadingErrorComponent = LoadingError,
   previewAltImages,
+  actionName,
   post = {},
   ...props
 }) => {
@@ -247,7 +255,14 @@ const Upload = ({
 
           stateManagement(f.name, f, onStart)
 
-          HTTPRequest({ file, progress, post, modifyRequest, BACKEND_URL })
+          HTTPRequest({
+            file,
+            progress,
+            post,
+            modifyRequest,
+            BACKEND_URL,
+            actionName
+          })
             .then((result) => complete(result))
             .catch((message) => error(message))
         }
@@ -263,7 +278,8 @@ const Upload = ({
       onFailure,
       post,
       modifyRequest,
-      BACKEND_URL
+      BACKEND_URL,
+      actionName
     ]
   )
 
