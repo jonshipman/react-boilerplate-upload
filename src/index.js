@@ -1,135 +1,44 @@
-import React, { useCallback, useState, useEffect } from "react";
+import React, { useCallback, useReducer } from "react";
 import { useDropzone } from "react-dropzone";
 
+import { HTTPRequest } from "./HttpRequest";
 import { isMobile } from "./functions";
+import { Item } from "./Item";
 import Loading from "./Loading";
 import LoadingError from "./LoadingError";
 
-const calcTimeLeft = (file) => {
-  const ttd = file.timeCurrent - file.timeStarted;
-  const uploadSpeed = file.uploaded / (ttd / 1000);
+const reducer = (state, incoming) => {
+  incoming.timeLast = incoming.timeCurrent || new Date().getTime();
+  incoming.timeCurrent = new Date().getTime();
 
-  if (uploadSpeed > 0) {
-    const tl = Math.round((file.size - file.uploaded) / uploadSpeed);
-    return new Date(tl * 1000).toISOString().substr(11, 8);
+  const files = [];
+
+  var remove = false;
+  if (!incoming.loading && 100 === incoming.progress) {
+    remove = true;
   }
 
-  return 0;
-};
+  if (!incoming.loading && 0 === incoming.progress) {
+    remove = true;
+  }
 
-const Item = ({
-  file,
-  loadingComponent: Load,
-  loadingErrorComponent: Error,
-  previewAltImages = {},
-}) => {
-  const [className, setClassname] = useState("bg-moon-gray");
-
-  useEffect(() => {
-    let timeout = setTimeout(() => {
-      if (!file.loading) {
-        setClassname("bg-white");
-      }
-    }, 2500);
-
-    return () => {
-      if (timeout) {
-        clearTimeout(timeout);
-      }
-    };
-  }, [setClassname, file]);
-
-  const timeLeft = calcTimeLeft(file);
-
-  let preview = file.preview;
-
-  // Allows the developer to specify alternative images, like a PDF or DOC thumbnail icon
-  Object.keys(previewAltImages).forEach((key) => {
-    if (key === file.type) {
-      preview = previewAltImages[key];
+  if (state.length < 1) {
+    if (!remove) {
+      files.push(incoming);
     }
-  });
-
-  return (
-    <div
-      className={`bg-animate relative z-1 flex flex-wrap flex-nowrap-l items-center ${className}`}
-    >
-      <div
-        className="w3 h3 bg-center cover relative z-2 ma2 bg-gray"
-        style={{ backgroundImage: `url(${preview})` }}
-      />
-      <div className="black relative z-2">{file.name}</div>
-      {file.loading && file.progress > 99 && (
-        <div className="relative z-2 ma2">
-          <Load color="#fff" />
-        </div>
-      )}
-      {file.error && (
-        <div className="relative z-2 ma2 black">
-          <Error error={file.error} />
-        </div>
-      )}
-      {!file.loading && !file.error && (
-        <div className="relative z-2 mt2 mr2 mb2 white ml-auto">Done!</div>
-      )}
-      {timeLeft && (
-        <div className="black ma2 relative z-2 ml-auto">
-          {timeLeft} remaining
-        </div>
-      )}
-      {(file.loading || file.error) && (
-        <div
-          className={`absolute z-1 top-0 bottom-0 left-0 w-100 ${
-            file.error ? "bg-red" : "bg-primary"
-          }`}
-          style={{ width: `${file.progress}%` }}
-        />
-      )}
-    </div>
-  );
-};
-
-const HTTPRequest = ({
-  file,
-  progress,
-  post,
-  modifyRequest,
-  BACKEND_URL,
-  actionName = "media_upload",
-}) => {
-  const url = `${BACKEND_URL}/wp_boilerplate_upload_ajax?action=${actionName}`;
-
-  return new Promise((res, rej) => {
-    const request = new XMLHttpRequest();
-    const form = new FormData();
-    form.append("file", file);
-
-    Object.keys(post).forEach((key) => form.append(key, post[key]));
-
-    request.onreadystatechange = () => {
-      if (request.readyState === XMLHttpRequest.DONE) {
-        if (request.status >= 200 && request.status < 400) {
-          res(request.responseText);
-        } else {
-          rej(request.statusText);
+  } else {
+    state.forEach((file) => {
+      if (file.name === incoming.name) {
+        if (!remove) {
+          files.push(incoming);
         }
+      } else {
+        files.push(file);
       }
-    };
+    });
+  }
 
-    request.open("post", url, true);
-    request.upload.addEventListener("progress", progress);
-
-    modifyRequest(request);
-    // Pass in the prop "modifyRequest" to do something like below
-    // if (Config.getAuthToken()) {
-    //   request.setRequestHeader(
-    //     "Authorization",
-    //     "Bearer " + Config.getAuthToken()
-    //   );
-    // }
-
-    request.send(form);
-  });
+  return files;
 };
 
 const Upload = ({
@@ -146,48 +55,12 @@ const Upload = ({
   loadingComponent = Loading,
   loadingErrorComponent = LoadingError,
   previewAltImages,
+  progressBarClassName = "bg-primary",
   actionName,
   post = {},
   ...props
 }) => {
-  const [files, setFiles] = useState([]);
-
-  const stateManagement = useCallback(
-    (name, args, callback = () => {}) => {
-      setFiles((prev) => {
-        let _file = prev.filter((i) => i.name === name);
-        let _files = prev.filter((i) => i.name !== name);
-        let _f = {};
-
-        if (_file?.length > 0) {
-          _f = { ..._file[0], ...args };
-        } else {
-          _f = args;
-        }
-
-        _f.timeLast = _f.timeCurrent;
-        _f.timeCurrent = new Date().getTime();
-
-        if (!_f.loading && 100 === _f.progress) {
-          _file = [];
-        } else {
-          _file = [_f];
-        }
-
-        // The timeout is to prevent two simultaneous renders in separate components.
-        setTimeout(() => {
-          callback(_f);
-        });
-
-        if (multiple) {
-          return [..._files, ..._file];
-        } else {
-          return _file;
-        }
-      });
-    },
-    [setFiles, multiple],
-  );
+  const [files, setFile] = useReducer(reducer, []);
 
   const onDrop = useCallback(
     (acceptedFiles) => {
@@ -210,20 +83,16 @@ const Upload = ({
 
         reader.onabort = () => {
           const message = "file reading was aborted";
-          stateManagement(
-            f.name,
-            { loading: false, error: message },
-            onFailure,
-          );
+          const readerAbortFile = { ...f, loading: false, error: message };
+          setFile(readerAbortFile);
+          onFailure(readerAbortFile);
         };
 
         reader.onerror = () => {
           const message = "file reading has failed";
-          stateManagement(
-            f.name,
-            { loading: false, error: message },
-            onFailure,
-          );
+          const readerErrorFile = { ...f, loading: false, error: message };
+          setFile(readerErrorFile);
+          onFailure(readerErrorFile);
         };
 
         reader.onload = () => {
@@ -234,34 +103,36 @@ const Upload = ({
               ((evt.position || evt.loaded) / (evt.totalSize || evt.total)) *
               100;
 
-            stateManagement(
-              f.name,
-              { uploaded: evt.loaded || evt.position, progress: Math.round(p) },
-              onProgress,
-            );
+            const progressFile = {
+              ...f,
+              uploaded: evt.loaded || evt.position,
+              progress: Math.round(p),
+            };
+            setFile(progressFile);
+            onProgress(progressFile);
           };
 
           const complete = (response) => {
             let c = onComplete;
-            const params = { loading: false, response };
+            const completeFile = { ...f, loading: false, response };
 
             if ("" === response || "0" === response) {
               c = onFailure;
-              params.error = "Unable to save.";
+              completeFile.error = "Unable to save.";
             }
 
-            stateManagement(f.name, params, c);
+            setFile(completeFile);
+            c(completeFile);
           };
 
           const error = (message) => {
-            stateManagement(
-              f.name,
-              { loading: false, error: message },
-              onFailure,
-            );
+            const errorFile = { ...f, loading: false, error: message };
+            setFile(errorFile);
+            onFailure(errorFile);
           };
 
-          stateManagement(f.name, f, onStart);
+          onStart(f);
+          setFile(f);
 
           HTTPRequest({
             file,
@@ -279,7 +150,6 @@ const Upload = ({
       });
     },
     [
-      stateManagement,
       onStart,
       onComplete,
       onProgress,
@@ -305,13 +175,12 @@ const Upload = ({
     dropzoneAttrs,
   );
 
+  const rootProps = getRootProps({
+    className: `bg-near-white ba b--moon-gray pa2 moon-gray f6 mb3 relative z-1 pointer tc overflow-hidden ${className}`,
+  });
+
   return (
-    <div
-      {...getRootProps({
-        className: `bg-near-white ba b--moon-gray pa2 moon-gray f6 mb3 relative z-1 pointer tc overflow-hidden ${className}`,
-      })}
-      {...props}
-    >
+    <div {...rootProps} {...props}>
       <input {...getInputProps()} />
       {_mobile() ? (
         <p>Tap to select files</p>
@@ -321,13 +190,16 @@ const Upload = ({
         <p>Drag 'n' drop some files here, or click to select files</p>
       )}
       {files.length > 0 &&
-        files.map((f) => (
+        files.map((file) => (
           <Item
-            key={f.name}
-            file={f}
-            loadingErrorComponent={loadingErrorComponent}
-            loadingComponent={loadingComponent}
-            previewAltImages={previewAltImages}
+            key={file.name}
+            {...{
+              file,
+              progressBarClassName,
+              loadingErrorComponent,
+              loadingComponent,
+              previewAltImages,
+            }}
           />
         ))}
     </div>
